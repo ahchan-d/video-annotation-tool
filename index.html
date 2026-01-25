@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>iOS Video Debug</title>
+<style>
+body { font-family: system-ui; margin: 16px; }
+video { width: 100%; max-height: 50vh; background: #333; }
+button { font-size: 18px; padding: 12px 16px; margin: 4px; }
+#log { background: #f0f0f0; padding: 10px; font-family: monospace; font-size: 12px; white-space: pre-wrap; max-height: 200px; overflow-y: auto; }
+</style>
+</head>
+<body>
+
+<h3>iOS Video Debug</h3>
+
+<div id="log">Loading...</div>
+
+<p><input type="file" id="file" accept="video/*"></p>
+
+<video id="video" controls playsinline muted webkit-playsinline></video>
+
+<p>
+<button id="btnPlay">▶ Play</button>
+<button id="btnPause">⏸ Pause</button>
+</p>
+
+<script>
+// ログ関数
+var logEl = document.getElementById("log");
+function log(msg) {
+  var now = new Date().toLocaleTimeString();
+  logEl.textContent = now + " " + msg + "\n" + logEl.textContent;
+}
+
+// 起動確認
+log("Script loaded. UA: " + navigator.userAgent.slice(0, 50));
+
+var v = document.getElementById("video");
+var fileInput = document.getElementById("file");
+
+// ファイル選択
+fileInput.onchange = function(e) {
+  log("File input changed");
+
+  var files = e.target.files;
+  log("Files count: " + (files ? files.length : "null"));
+
+  if (!files || files.length === 0) {
+    log("No file selected");
+    return;
+  }
+
+  var f = files[0];
+  log("File: " + f.name);
+  log("Size: " + f.size + " bytes");
+  log("Type: " + f.type);
+
+  // Blob URL方式
+  try {
+    var url = URL.createObjectURL(f);
+    log("Blob URL created: " + url.slice(0, 30) + "...");
+    v.src = url;
+    log("src set");
+  } catch(err) {
+    log("ERROR: " + err.message);
+  }
+};
+
+// Video events
+v.onloadstart = function() { log("EVENT: loadstart"); };
+v.onloadedmetadata = function() { log("EVENT: loadedmetadata, duration=" + v.duration); };
+v.onloadeddata = function() { log("EVENT: loadeddata"); };
+v.oncanplay = function() { log("EVENT: canplay"); };
+v.onerror = function() {
+  var e = v.error;
+  log("EVENT: error - " + (e ? "code=" + e.code + " " + e.message : "unknown"));
+};
+v.onplaying = function() { log("EVENT: playing"); };
+v.onstalled = function() { log("EVENT: stalled"); };
+v.onsuspend = function() { log("EVENT: suspend"); };
+
+// ボタン
+document.getElementById("btnPlay").onclick = function() {
+  log("Play button clicked");
+  v.play().then(function() {
+    log("Play succeeded");
+    v.muted = false;
+  }).catch(function(e) {
+    log("Play failed: " + e.message);
+  });
+};
+
+document.getElementById("btnPause").onclick = function() {
+  log("Pause clicked");
+  v.pause();
+};
+
+log("Setup complete");
+</script>
+
+</body>
+</html>
