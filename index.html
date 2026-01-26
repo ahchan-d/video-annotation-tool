@@ -51,6 +51,12 @@ button { font-size: 18px; padding: 12px 16px; margin: 4px; }
 #timestampBtn:active { background: #388E3C; }
 .copied { background: #2196F3 !important; }
 
+/* 精密モード */
+#fineModeBtn { background: #9E9E9E; color: white; border: none; border-radius: 4px; }
+#fineModeBtn.active { background: #FF5722; }
+#fineModeInfo { font-size: 12px; color: #666; margin-top: 4px; }
+#fineModeInfo.active { color: #FF5722; font-weight: bold; }
+
 /* ボタンのダブルタップズーム防止 */
 button, input { touch-action: manipulation; }
 </style>
@@ -79,9 +85,11 @@ button, input { touch-action: manipulation; }
     <button id="seekFwd10">+10s</button>
   </div>
   <p>
+    <button id="fineModeBtn">🎯 精密モード</button>
     <button id="timestampBtn">📋 タイムスタンプをコピー</button>
     <span id="copyFeedback"></span>
   </p>
+  <div id="fineModeInfo">精密モード: シークバーの動きが10倍細かくなります</div>
 </div>
 
 <p>
@@ -199,6 +207,18 @@ function formatTime(sec) {
   return String(m).padStart(2, "0") + ":" + s.toFixed(3).padStart(6, "0");
 }
 
+// コピー用フォーマット（秒のみ、小数第1位まで）
+function formatTimeForCopy(sec) {
+  if (isNaN(sec) || !isFinite(sec)) return "0.0";
+  return sec.toFixed(1);
+}
+
+// 精密モード
+var fineMode = false;
+var fineStartTime = 0;
+var fineStartValue = 0;
+var fineSensitivity = 10; // 10倍細かく
+
 function updateTimeDisplay() {
   var current = formatTime(v.currentTime);
   var total = formatTime(v.duration);
@@ -219,10 +239,52 @@ v.ondurationchange = function() {
 };
 
 // シークバー操作
+seekBar.addEventListener("touchstart", function() {
+  if (fineMode && v.duration > 0) {
+    fineStartTime = v.currentTime;
+    fineStartValue = parseFloat(seekBar.value);
+  }
+});
+
+seekBar.addEventListener("mousedown", function() {
+  if (fineMode && v.duration > 0) {
+    fineStartTime = v.currentTime;
+    fineStartValue = parseFloat(seekBar.value);
+  }
+});
+
 seekBar.oninput = function() {
   if (v.duration > 0) {
-    v.currentTime = (seekBar.value / 100) * v.duration;
+    if (fineMode) {
+      // 精密モード: 動きを1/10に縮小
+      var delta = (parseFloat(seekBar.value) - fineStartValue) / fineSensitivity;
+      var newPercent = (fineStartTime / v.duration) * 100 + delta;
+      newPercent = Math.max(0, Math.min(100, newPercent));
+      v.currentTime = (newPercent / 100) * v.duration;
+    } else {
+      v.currentTime = (seekBar.value / 100) * v.duration;
+    }
     updateTimeDisplay();
+  }
+};
+
+// 精密モード切り替え
+document.getElementById("fineModeBtn").onclick = function() {
+  fineMode = !fineMode;
+  var btn = document.getElementById("fineModeBtn");
+  var info = document.getElementById("fineModeInfo");
+  if (fineMode) {
+    btn.classList.add("active");
+    btn.textContent = "🎯 精密モード ON";
+    info.classList.add("active");
+    info.textContent = "精密モード ON: シークバーの動きが10倍細かくなります";
+    log("Fine mode ON");
+  } else {
+    btn.classList.remove("active");
+    btn.textContent = "🎯 精密モード";
+    info.classList.remove("active");
+    info.textContent = "精密モード: シークバーの動きが10倍細かくなります";
+    log("Fine mode OFF");
   }
 };
 
@@ -242,7 +304,7 @@ document.getElementById("seekFwd10").onclick = function() { seekBy(10); };
 
 // タイムスタンプコピー
 document.getElementById("timestampBtn").onclick = function() {
-  var timestamp = formatTime(v.currentTime);
+  var timestamp = formatTimeForCopy(v.currentTime);
   var btn = document.getElementById("timestampBtn");
   var feedback = document.getElementById("copyFeedback");
 
