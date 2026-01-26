@@ -9,6 +9,16 @@ body { font-family: system-ui; margin: 16px; }
 video { width: 100%; max-height: 50vh; background: #333; }
 button { font-size: 18px; padding: 12px 16px; margin: 4px; }
 #log { background: #f0f0f0; padding: 10px; font-family: monospace; font-size: 12px; white-space: pre-wrap; max-height: 200px; overflow-y: auto; }
+
+/* シークバー */
+#seekContainer { margin: 16px 0; }
+#seekBar { width: 100%; height: 8px; cursor: pointer; }
+#timeDisplay { font-family: monospace; font-size: 16px; margin: 8px 0; }
+#fineSeek { margin: 8px 0; }
+#fineSeek button { font-size: 14px; padding: 8px 12px; }
+#timestampBtn { background: #4CAF50; color: white; border: none; border-radius: 4px; }
+#timestampBtn:active { background: #388E3C; }
+.copied { background: #2196F3 !important; }
 </style>
 </head>
 <body>
@@ -20,6 +30,24 @@ button { font-size: 18px; padding: 12px 16px; margin: 4px; }
 <p><input type="file" id="file" accept="video/*"></p>
 
 <video id="video" controls playsinline muted webkit-playsinline></video>
+
+<!-- シークバー・タイムスタンプ -->
+<div id="seekContainer">
+  <input type="range" id="seekBar" min="0" max="100" step="0.01" value="0">
+  <div id="timeDisplay">00:00.000 / 00:00.000</div>
+  <div id="fineSeek">
+    <button id="seekBack10">-10s</button>
+    <button id="seekBack1">-1s</button>
+    <button id="seekBackFrame">-0.1s</button>
+    <button id="seekFwdFrame">+0.1s</button>
+    <button id="seekFwd1">+1s</button>
+    <button id="seekFwd10">+10s</button>
+  </div>
+  <p>
+    <button id="timestampBtn">📋 タイムスタンプをコピー</button>
+    <span id="copyFeedback"></span>
+  </p>
+</div>
 
 <p>
 <button id="btnPlay">▶ Play</button>
@@ -96,6 +124,103 @@ document.getElementById("btnPause").onclick = function() {
   log("Pause clicked");
   v.pause();
 };
+
+// シークバー関連
+var seekBar = document.getElementById("seekBar");
+var timeDisplay = document.getElementById("timeDisplay");
+
+function formatTime(sec) {
+  if (isNaN(sec) || !isFinite(sec)) return "00:00.000";
+  var m = Math.floor(sec / 60);
+  var s = sec % 60;
+  return String(m).padStart(2, "0") + ":" + s.toFixed(3).padStart(6, "0");
+}
+
+function updateTimeDisplay() {
+  var current = formatTime(v.currentTime);
+  var total = formatTime(v.duration);
+  timeDisplay.textContent = current + " / " + total;
+
+  if (v.duration > 0) {
+    seekBar.value = (v.currentTime / v.duration) * 100;
+  }
+}
+
+v.ontimeupdate = function() {
+  updateTimeDisplay();
+};
+
+v.ondurationchange = function() {
+  updateTimeDisplay();
+  log("Duration: " + v.duration);
+};
+
+// シークバー操作
+seekBar.oninput = function() {
+  if (v.duration > 0) {
+    v.currentTime = (seekBar.value / 100) * v.duration;
+    updateTimeDisplay();
+  }
+};
+
+// 細かいシークボタン
+function seekBy(sec) {
+  v.currentTime = Math.max(0, Math.min(v.duration || 0, v.currentTime + sec));
+  updateTimeDisplay();
+  log("Seek to: " + formatTime(v.currentTime));
+}
+
+document.getElementById("seekBack10").onclick = function() { seekBy(-10); };
+document.getElementById("seekBack1").onclick = function() { seekBy(-1); };
+document.getElementById("seekBackFrame").onclick = function() { seekBy(-0.1); };
+document.getElementById("seekFwdFrame").onclick = function() { seekBy(0.1); };
+document.getElementById("seekFwd1").onclick = function() { seekBy(1); };
+document.getElementById("seekFwd10").onclick = function() { seekBy(10); };
+
+// タイムスタンプコピー
+document.getElementById("timestampBtn").onclick = function() {
+  var timestamp = formatTime(v.currentTime);
+  var btn = document.getElementById("timestampBtn");
+  var feedback = document.getElementById("copyFeedback");
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(timestamp).then(function() {
+      log("Copied: " + timestamp);
+      btn.classList.add("copied");
+      feedback.textContent = "コピーしました: " + timestamp;
+      setTimeout(function() {
+        btn.classList.remove("copied");
+        feedback.textContent = "";
+      }, 2000);
+    }).catch(function(err) {
+      log("Copy failed: " + err.message);
+      fallbackCopy(timestamp);
+    });
+  } else {
+    fallbackCopy(timestamp);
+  }
+};
+
+function fallbackCopy(text) {
+  var ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand("copy");
+    log("Copied (fallback): " + text);
+    document.getElementById("copyFeedback").textContent = "コピーしました: " + text;
+  } catch(e) {
+    log("Copy failed: " + e.message);
+    document.getElementById("copyFeedback").textContent = "コピー失敗";
+  }
+  document.body.removeChild(ta);
+  setTimeout(function() {
+    document.getElementById("copyFeedback").textContent = "";
+  }, 2000);
+}
 
 log("Setup complete");
 </script>
