@@ -148,8 +148,7 @@ button, input { touch-action: manipulation; }
     <div id="timeDisplay">00:00.000 / 00:00.000</div>
     <div id="playbackControls">
       <button id="btnRewind" class="btn-secondary">⏪</button>
-      <button id="btnPlay" class="btn-primary">▶</button>
-      <button id="btnPause" class="btn-secondary">⏸</button>
+      <button id="btnPlayPause" class="btn-primary">▶</button>
       <button id="btnFastFwd" class="btn-secondary">⏩</button>
       <span id="speedDisplay">1.0x</span>
     </div>
@@ -465,15 +464,28 @@ function resetPlayback() {
   updateSpeedDisplay();
 }
 
-document.getElementById("btnPlay").onclick = function() {
+document.getElementById("btnPlayPause").onclick = function() {
   resetPlayback();
-  v.play();
+  if (v.paused) {
+    v.play();
+  } else {
+    v.pause();
+  }
 };
 
-document.getElementById("btnPause").onclick = function() {
-  resetPlayback();
-  v.pause();
-};
+// 再生状態に応じてボタン表示を更新
+function updatePlayPauseButton() {
+  var btn = document.getElementById("btnPlayPause");
+  if (v.paused) {
+    btn.textContent = "▶";
+  } else {
+    btn.textContent = "⏸";
+  }
+}
+
+v.onplay = updatePlayPauseButton;
+v.onpause = updatePlayPauseButton;
+v.onended = updatePlayPauseButton;
 
 document.getElementById("btnFastFwd").onclick = function() {
   stopRewind();
@@ -638,7 +650,7 @@ document.getElementById("downloadCsvBtn").onclick = function() {
   for (var i = 0; i < annotations.length; i++) {
     var a = annotations[i];
     var query = a.query.replace(/"/g, '""');
-    csv += a.id + "," + a.video_id + "," + a.start + "," + a.end + ',"' + query + '"\n';
+    csv += a.id + "," + a.video_id + "," + a.start.toFixed(1) + "," + a.end.toFixed(1) + ',"' + query + '"\n';
   }
 
   var blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
@@ -693,7 +705,7 @@ document.getElementById("saveCsvBtn").onclick = async function() {
     for (var i = 0; i < annotations.length; i++) {
       var a = annotations[i];
       var query = a.query.replace(/"/g, '""');
-      csv += a.id + "," + a.video_id + "," + a.start + "," + a.end + ',"' + query + '"\n';
+      csv += a.id + "," + a.video_id + "," + a.start.toFixed(1) + "," + a.end.toFixed(1) + ',"' + query + '"\n';
     }
 
     var writable = await csvFileHandle.createWritable();
@@ -723,8 +735,8 @@ function renderTable() {
     tr.innerHTML =
       "<td>" + a.id + "</td>" +
       "<td>" + escapeHtml(a.video_id) + "</td>" +
-      "<td>" + a.start + "</td>" +
-      "<td>" + a.end + "</td>" +
+      "<td>" + a.start.toFixed(1) + "</td>" +
+      "<td>" + a.end.toFixed(1) + "</td>" +
       '<td class="query-cell" title="' + escapeHtml(a.query) + '">' + escapeHtml(a.query) + "</td>" +
       "<td>" +
         '<button class="btn-primary btn-small edit-btn" data-id="' + a.id + '">編集</button> ' +
