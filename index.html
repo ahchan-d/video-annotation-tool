@@ -5,6 +5,39 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Video Annotation Tool</title>
 <style>
+/* テーマ変数 */
+:root {
+  --bg-color: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --bg-tertiary: #e0e0e0;
+  --text-color: #333333;
+  --text-secondary: #666666;
+  --border-color: #dddddd;
+  --input-bg: #ffffff;
+  --input-border: #cccccc;
+  --table-hover: #f0f0f0;
+  --table-header: #e0e0e0;
+  --suggestion-hover: #e3f2fd;
+  --editing-row: #fff3e0;
+  --video-bg: #333333;
+}
+
+[data-theme="dark"] {
+  --bg-color: #1a1a1a;
+  --bg-secondary: #2d2d2d;
+  --bg-tertiary: #404040;
+  --text-color: #e0e0e0;
+  --text-secondary: #a0a0a0;
+  --border-color: #444444;
+  --input-bg: #333333;
+  --input-border: #555555;
+  --table-hover: #3a3a3a;
+  --table-header: #404040;
+  --suggestion-hover: #1e3a5f;
+  --editing-row: #4a3a2a;
+  --video-bg: #000000;
+}
+
 /* ページ拡大・スクロールバウンス・プルリフレッシュ防止 */
 html, body {
   overflow: hidden;
@@ -19,6 +52,9 @@ html, body {
   height: 100%;
   margin: 0;
   padding: 0;
+  background: var(--bg-color);
+  color: var(--text-color);
+  transition: background 0.3s, color 0.3s;
 }
 
 /* スクロール可能なコンテナ */
@@ -31,14 +67,15 @@ html, body {
   touch-action: pan-y;
   padding: 16px;
   box-sizing: border-box;
+  background: var(--bg-color);
 }
 
 body { font-family: system-ui; }
 
 /* コンテンツは選択可能に */
 #timeDisplay, input, textarea, td { -webkit-user-select: text; user-select: text; }
-video { width: 100%; max-height: 40vh; background: #333; }
-button { font-size: 16px; padding: 10px 14px; margin: 4px; }
+video { width: 100%; max-height: 40vh; background: var(--video-bg); }
+button { font-size: 16px; padding: 10px 14px; margin: 4px; cursor: pointer; }
 
 /* シークバー */
 #seekContainer { margin: 12px 0; }
@@ -60,28 +97,49 @@ button { font-size: 16px; padding: 10px 14px; margin: 4px; }
 /* 精密モード */
 #fineModeBtn { background: #9E9E9E; color: white; border: none; border-radius: 4px; }
 #fineModeBtn.active { background: #FF5722; }
-#fineModeInfo { font-size: 12px; color: #666; margin-top: 4px; }
+#fineModeInfo { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
 #fineModeInfo.active { color: #FF5722; font-weight: bold; }
 
 /* ボタンのダブルタップズーム防止 */
 button, input { touch-action: manipulation; }
 
 /* セクション */
-.section { margin: 16px 0; padding: 12px; background: #f5f5f5; border-radius: 8px; }
-.section h4 { margin: 0 0 12px 0; }
+.section { margin: 16px 0; padding: 12px; background: var(--bg-secondary); border-radius: 8px; transition: background 0.3s; }
+.section h4 { margin: 0 0 12px 0; color: var(--text-color); }
+h3 { color: var(--text-color); }
+
+/* ファイル入力 */
+input[type="file"] {
+  color: var(--text-color);
+}
+
+/* レンジ入力（シークバー、音量バー） */
+input[type="range"] {
+  accent-color: #2196F3;
+}
 
 /* アノテーション一覧テーブル */
 #annotationTable { width: 100%; border-collapse: collapse; font-size: 14px; }
-#annotationTable th, #annotationTable td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-#annotationTable th { background: #e0e0e0; }
-#annotationTable tr:hover { background: #f0f0f0; }
+#annotationTable th, #annotationTable td { border: 1px solid var(--border-color); padding: 8px; text-align: left; color: var(--text-color); }
+#annotationTable th { background: var(--table-header); }
+#annotationTable tr:hover { background: var(--table-hover); }
 #annotationTable .query-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #tableContainer { max-height: 300px; overflow-y: auto; }
 
 /* 編集フォーム */
 #editForm { display: grid; gap: 8px; }
-#editForm label { font-weight: bold; font-size: 14px; }
-#editForm input, #editForm textarea, #editForm select { font-size: 16px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box; }
+#editForm label { font-weight: bold; font-size: 14px; color: var(--text-color); }
+#editForm input, #editForm textarea, #editForm select {
+  font-size: 16px;
+  padding: 8px;
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--input-bg);
+  color: var(--text-color);
+  transition: background 0.3s, border-color 0.3s, color 0.3s;
+}
 #editForm textarea { resize: vertical; min-height: 60px; }
 
 /* オートサジェスト */
@@ -91,8 +149,8 @@ button, input { touch-action: manipulation; }
   top: 100%;
   left: 0;
   right: 0;
-  background: white;
-  border: 1px solid #ccc;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
   border-top: none;
   border-radius: 0 0 4px 4px;
   max-height: 200px;
@@ -104,11 +162,12 @@ button, input { touch-action: manipulation; }
 .suggestion-item {
   padding: 10px;
   cursor: pointer;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-color);
   font-size: 14px;
+  color: var(--text-color);
 }
 .suggestion-item:hover, .suggestion-item.selected {
-  background: #e3f2fd;
+  background: var(--suggestion-hover);
 }
 .suggestion-item:last-child { border-bottom: none; }
 .form-row { display: flex; align-items: center; gap: 8px; }
@@ -124,15 +183,52 @@ button, input { touch-action: manipulation; }
 .btn-small { font-size: 12px; padding: 6px 10px; }
 
 /* 編集中ハイライト */
-#annotationTable tr.editing { background: #fff3e0 !important; }
+#annotationTable tr.editing { background: var(--editing-row) !important; }
 
 /* ステータス表示 */
-#status { font-size: 14px; color: #666; margin: 8px 0; }
+#status { font-size: 14px; color: var(--text-secondary); margin: 8px 0; }
 #status.error { color: #f44336; }
 #status.success { color: #4CAF50; }
+
+/* テーマ切り替えボタン */
+.theme-toggle-container {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 1000;
+}
+
+.theme-toggle {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-color);
+  transition: background 0.3s, border-color 0.3s;
+}
+
+.theme-toggle:hover {
+  background: var(--table-hover);
+}
+
+.theme-toggle .icon {
+  font-size: 16px;
+}
 </style>
 </head>
 <body>
+<div class="theme-toggle-container">
+  <button class="theme-toggle" id="themeToggle">
+    <span class="icon" id="themeIcon">🌙</span>
+    <span id="themeText">ダーク</span>
+  </button>
+</div>
+
 <div id="container">
 
 <h3>Video Annotation Tool</h3>
@@ -193,7 +289,7 @@ button, input { touch-action: manipulation; }
     <input type="hidden" id="editId" value="">
     <div>
       <label>video_id</label>
-      <input type="text" id="editVideoId" readonly style="background: #e0e0e0;">
+      <input type="text" id="editVideoId" readonly style="background: var(--bg-tertiary);">
     </div>
     <div>
       <label>start</label>
@@ -243,6 +339,42 @@ button, input { touch-action: manipulation; }
 </div>
 
 <script>
+// ===== テーマ切り替え =====
+(function() {
+  var savedTheme = localStorage.getItem("theme");
+  var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  var theme = savedTheme || (prefersDark ? "dark" : "light");
+  document.documentElement.setAttribute("data-theme", theme);
+})();
+
+function toggleTheme() {
+  var html = document.documentElement;
+  var currentTheme = html.getAttribute("data-theme");
+  var newTheme = currentTheme === "dark" ? "light" : "dark";
+  html.setAttribute("data-theme", newTheme);
+  localStorage.setItem("theme", newTheme);
+  updateThemeButton(newTheme);
+}
+
+function updateThemeButton(theme) {
+  var icon = document.getElementById("themeIcon");
+  var text = document.getElementById("themeText");
+  if (theme === "dark") {
+    icon.textContent = "☀️";
+    text.textContent = "ライト";
+  } else {
+    icon.textContent = "🌙";
+    text.textContent = "ダーク";
+  }
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  var themeBtn = document.getElementById("themeToggle");
+  themeBtn.onclick = toggleTheme;
+  var currentTheme = document.documentElement.getAttribute("data-theme");
+  updateThemeButton(currentTheme);
+});
+
 // ===== グローバル変数 =====
 var annotations = [];
 var editingId = null;
