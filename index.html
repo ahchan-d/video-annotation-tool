@@ -1382,7 +1382,7 @@ function parseCsvLine(line) {
 }
 
 // ===== CSVダウンロード =====
-document.getElementById("downloadCsvBtn").onclick = function() {
+document.getElementById("downloadCsvBtn").onclick = async function() {
   var csv = "id,video_id,start,end,query\n";
 
   for (var i = 0; i < annotations.length; i++) {
@@ -1391,6 +1391,28 @@ document.getElementById("downloadCsvBtn").onclick = function() {
     csv += a.id + "," + a.video_id + "," + a.start.toFixed(1) + "," + a.end.toFixed(1) + ',"' + query + '"\n';
   }
 
+  // File System Access API対応ブラウザ（PC Chrome/Edge）では保存先を選択可能
+  if (window.showSaveFilePicker) {
+    try {
+      var handle = await window.showSaveFilePicker({
+        suggestedName: "jichi2507_rule.csv",
+        types: [{
+          description: "CSV Files",
+          accept: { "text/csv": [".csv"] }
+        }]
+      });
+      var writable = await handle.createWritable();
+      await writable.write(csv);
+      await writable.close();
+      showStatus("CSVを保存しました（上書き可能）", "success");
+      return;
+    } catch (err) {
+      if (err.name === "AbortError") return; // ユーザーがキャンセル
+      // フォールバック
+    }
+  }
+
+  // フォールバック: 通常のダウンロード（スマホ等）
   var blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   var url = URL.createObjectURL(blob);
   var link = document.createElement("a");
