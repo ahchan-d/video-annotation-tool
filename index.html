@@ -704,6 +704,94 @@ input[type="range"] {
     display: none;
   }
 }
+
+/* 統計モーダル */
+.stats-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 3000;
+  align-items: center;
+  justify-content: center;
+}
+.stats-modal.show { display: flex; }
+.stats-modal-content {
+  background: var(--bg-color);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 700px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+.stats-modal-content h3 { margin-top: 0; }
+.stats-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.stats-summary-card {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+.stats-summary-card .stat-value {
+  font-size: 22px;
+  font-weight: bold;
+  color: #2196F3;
+}
+.stats-summary-card .stat-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 12px;
+}
+.stats-table th, .stats-table td {
+  border: 1px solid var(--border-color);
+  padding: 6px 8px;
+  text-align: left;
+  color: var(--text-color);
+}
+.stats-table th {
+  background: var(--table-header);
+  white-space: nowrap;
+  font-size: 12px;
+}
+.stats-file-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.stats-file-status {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.stats-btn {
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-color);
+}
+.stats-btn:hover { background: var(--table-hover); }
+.stats-btn-primary { background: #2196F3; color: white; border: none; }
+.stats-btn-primary:hover { background: #1976D2; }
 </style>
 </head>
 <body>
@@ -773,6 +861,7 @@ input[type="range"] {
     <button id="timerStartBtn" class="btn-primary btn-small" title="T">▶<span class="key-hint">[T]</span></button>
     <button id="timerStopBtn" class="btn-secondary btn-small" disabled title="T">⏸<span class="key-hint">[T]</span></button>
     <button id="timerResetBtn" class="btn-secondary btn-small" title="Y">↺<span class="key-hint">[Y]</span></button>
+    <button id="statsBtn" class="btn-secondary btn-small" title="U">📊<span class="key-hint">[U]</span></button>
     <span class="timer-compact-stats">
       <span id="timerCount">0</span>件 | <span id="timerRate">-</span>件/時
     </span>
@@ -883,6 +972,21 @@ input[type="range"] {
 
 </div><!-- /main-grid -->
 
+<!-- 統計モーダル -->
+<div class="stats-modal" id="statsModal">
+  <div class="stats-modal-content">
+    <h3>📊 作業セッション統計</h3>
+    <div class="stats-file-actions">
+      <button class="stats-btn stats-btn-primary" id="statsOpenBtn">ファイルを開く</button>
+      <button class="stats-btn" id="statsCreateBtn">新規作成</button>
+      <span class="stats-file-status" id="statsFileStatus">未接続</span>
+    </div>
+    <div class="stats-summary" id="statsSummary"></div>
+    <div id="statsTableContainer"></div>
+    <button class="btn-secondary" style="width: 100%; margin-top: 12px;" onclick="document.getElementById('statsModal').classList.remove('show')">閉じる</button>
+  </div>
+</div>
+
 <!-- ショートカットヘルプボタン -->
 <button class="shortcut-help-btn" id="shortcutHelpBtn" title="キーボードショートカット">⌨</button>
 
@@ -931,10 +1035,11 @@ input[type="range"] {
     <div class="shortcut-section">
       <h4>ファイル・タイマー</h4>
       <div class="shortcut-item"><span>動画フォルダを開く</span><span class="shortcut-key">O</span></div>
-      <div class="shortcut-item"><span>前の動画 / 次の動画</span><span class="shortcut-key">W / Q</span></div>
+      <div class="shortcut-item"><span>前の動画 / 次の動画</span><span class="shortcut-key">Q / W</span></div>
       <div class="shortcut-item"><span>動画を検索</span><span class="shortcut-key">/</span></div>
       <div class="shortcut-item"><span>タイマー開始/停止</span><span class="shortcut-key">T</span></div>
       <div class="shortcut-item"><span>タイマーリセット</span><span class="shortcut-key">Y</span></div>
+      <div class="shortcut-item"><span>統計モーダル</span><span class="shortcut-key">U</span></div>
       <div class="shortcut-item"><span>手動保存</span><span class="shortcut-key">Ctrl+S</span></div>
     </div>
     <p style="text-align: center; margin-top: 16px; color: var(--text-secondary); font-size: 12px;">
@@ -990,6 +1095,11 @@ var currentVideoId = "";
 var csvFileHandle = null; // File System Access API用
 var directoryHandle = null; // 動画フォルダ用
 var videoFiles = {}; // videoId → FileSystemFileHandle
+
+// ===== 作業セッション統計 =====
+var statsFileHandle = null;
+var sessionLog = [];
+var currentSessionStartIso = null;
 
 // ===== DOM要素 =====
 var v = document.getElementById("video");
@@ -1316,18 +1426,18 @@ async function jumpToAnnotationTime(annotationId, useEnd) {
 }
 
 // ===== 細かいシークボタン =====
-function seekBy(sec) {
-  if (!v.paused) v.pause();
+function seekBy(sec, pauseVideo) {
+  if (pauseVideo !== false && !v.paused) v.pause();
   v.currentTime = Math.max(0, Math.min(v.duration || 0, v.currentTime + sec));
   updateTimeDisplay();
 }
 
-document.getElementById("seekBack10").onclick = function() { seekBy(-10); };
+document.getElementById("seekBack10").onclick = function() { seekBy(-10, false); };
 document.getElementById("seekBack1").onclick = function() { seekBy(-1); };
 document.getElementById("seekBackFrame").onclick = function() { seekBy(-0.1); };
 document.getElementById("seekFwdFrame").onclick = function() { seekBy(0.1); };
 document.getElementById("seekFwd1").onclick = function() { seekBy(1); };
-document.getElementById("seekFwd10").onclick = function() { seekBy(10); };
+document.getElementById("seekFwd10").onclick = function() { seekBy(10, false); };
 
 // ===== 音量コントロール（ブースト対応） =====
 var volumeBar = document.getElementById("volumeBar");
@@ -1837,11 +1947,21 @@ function autoSave() {
 
 // ===== ページ離脱警告 =====
 window.addEventListener("beforeunload", function(e) {
+  // セッション記録を試みる（非同期だが最善努力）
+  finalizeSession();
+
   // CSVファイルが開かれていない場合のみ警告
   if (hasUnsavedChanges && annotations.length > 0) {
     e.preventDefault();
     e.returnValue = "未保存の変更があります。ページを離れますか？";
     return e.returnValue;
+  }
+});
+
+// visibilitychangeでもセッション保存を試みる（より信頼性が高い）
+document.addEventListener("visibilitychange", function() {
+  if (document.visibilityState === "hidden") {
+    finalizeSession();
   }
 });
 
@@ -1862,7 +1982,8 @@ function saveTimerState() {
       running: timerState.running,
       startTime: timerState.startTime,
       elapsedTime: timerState.elapsedTime,
-      annotationCount: timerState.annotationCount
+      annotationCount: timerState.annotationCount,
+      sessionStartIso: currentSessionStartIso || null
     };
     localStorage.setItem(timerStorageKey, JSON.stringify(payload));
   } catch (e) {
@@ -1882,6 +2003,11 @@ function loadTimerState() {
     timerState.elapsedTime = Number(data.elapsedTime) || 0;
     timerState.annotationCount = Number(data.annotationCount) || 0;
 
+    // セッション開始時刻の復元
+    if (data.sessionStartIso) {
+      currentSessionStartIso = data.sessionStartIso;
+    }
+
     if (timerState.running && timerState.startTime > 0) {
       document.getElementById('timerPanel').classList.add('running');
       document.getElementById('timerDisplay').classList.add('running');
@@ -1890,15 +2016,20 @@ function loadTimerState() {
       document.getElementById('timerStopBtn').disabled = false;
       timerState.intervalId = setInterval(updateTimerDisplay, 1000);
     } else {
-      document.getElementById('timerPanel').classList.remove('running');
-      document.getElementById('timerDisplay').classList.remove('running');
-      document.getElementById('timerStartBtn').disabled = false;
-      document.getElementById('timerStopBtn').disabled = true;
-      if (timerState.elapsedTime > 0 || timerState.annotationCount > 0) {
-        document.getElementById('timerStartBtn').textContent = '▶ 再開';
-      } else {
-        document.getElementById('timerStartBtn').textContent = '▶ 開始';
+      // タイマーが停止中なら自動起動
+      timerState.running = true;
+      timerState.startTime = Date.now();
+      if (!currentSessionStartIso) {
+        currentSessionStartIso = new Date().toISOString();
       }
+      document.getElementById('timerPanel').classList.add('running');
+      document.getElementById('timerDisplay').classList.add('running');
+      document.getElementById('timerStartBtn').disabled = true;
+      document.getElementById('timerStartBtn').textContent = '▶ 計測中...';
+      document.getElementById('timerStopBtn').disabled = false;
+      timerState.intervalId = setInterval(updateTimerDisplay, 1000);
+      updateTimerDisplay();
+      saveTimerState();
     }
   } catch (e) {
     // ignore parse errors
@@ -1969,6 +2100,11 @@ function startTimer() {
   timerState.running = true;
   timerState.startTime = Date.now();
 
+  // セッション開始時刻を記録（初回起動時のみ）
+  if (!currentSessionStartIso) {
+    currentSessionStartIso = new Date().toISOString();
+  }
+
   document.getElementById('timerPanel').classList.add('running');
   document.getElementById('timerDisplay').classList.add('running');
   document.getElementById('timerStartBtn').disabled = true;
@@ -2000,7 +2136,8 @@ function stopTimer() {
   saveTimerState();
 }
 
-function resetTimer() {
+async function resetTimer() {
+  await finalizeSession();
   stopTimer();
   timerState.elapsedTime = 0;
   timerState.annotationCount = 0;
@@ -2035,6 +2172,152 @@ document.getElementById('timerResetBtn').onclick = function() {
 // 初期化: ローカルストレージから復元
 loadTimerState();
 updateTimerDisplay();
+
+// ===== 作業セッション統計 =====
+
+async function openStatsFile() {
+  if (!window.showOpenFilePicker) {
+    showStatus("このブラウザはFile System Access APIに対応していません", "error");
+    return;
+  }
+  try {
+    var handles = await window.showOpenFilePicker({
+      types: [{ description: "JSON", accept: { "application/json": [".json"] } }]
+    });
+    statsFileHandle = handles[0];
+    var file = await statsFileHandle.getFile();
+    var text = await file.text();
+    var data = JSON.parse(text);
+    sessionLog = Array.isArray(data.sessions) ? data.sessions : [];
+    document.getElementById("statsFileStatus").textContent = "✓ " + statsFileHandle.name;
+    renderStatsModal();
+  } catch (err) {
+    if (err.name !== "AbortError") {
+      showStatus("統計ファイルの読み込みに失敗: " + err.message, "error");
+    }
+  }
+}
+
+async function createStatsFile() {
+  if (!window.showSaveFilePicker) {
+    showStatus("このブラウザはFile System Access APIに対応していません", "error");
+    return;
+  }
+  try {
+    statsFileHandle = await window.showSaveFilePicker({
+      suggestedName: "work_sessions.json",
+      types: [{ description: "JSON", accept: { "application/json": [".json"] } }]
+    });
+    sessionLog = [];
+    await saveSessionLog();
+    document.getElementById("statsFileStatus").textContent = "✓ " + statsFileHandle.name;
+    renderStatsModal();
+  } catch (err) {
+    if (err.name !== "AbortError") {
+      showStatus("統計ファイルの作成に失敗: " + err.message, "error");
+    }
+  }
+}
+
+async function saveSessionLog() {
+  if (!statsFileHandle) return;
+  try {
+    var writable = await statsFileHandle.createWritable();
+    var json = JSON.stringify({ sessions: sessionLog }, null, 2);
+    await writable.write(json);
+    await writable.close();
+  } catch (err) {
+    console.error("統計ファイル保存エラー:", err);
+  }
+}
+
+async function finalizeSession() {
+  var elapsed = timerState.elapsedTime;
+  if (timerState.running) {
+    elapsed += Date.now() - timerState.startTime;
+  }
+  var count = timerState.annotationCount;
+
+  // 経過1秒未満かつ登録0件はスキップ
+  if (elapsed < 1000 && count === 0) return;
+  // セッション開始時刻がない場合はスキップ
+  if (!currentSessionStartIso) return;
+
+  var now = new Date();
+  var session = {
+    id: "s_" + Date.now(),
+    startedAt: currentSessionStartIso,
+    endedAt: now.toISOString(),
+    durationMs: elapsed,
+    annotationCount: count,
+    ratePerHour: elapsed > 0 ? parseFloat((count / (elapsed / 3600000)).toFixed(1)) : 0
+  };
+
+  sessionLog.push(session);
+  await saveSessionLog();
+
+  // セッション開始時刻をクリア
+  currentSessionStartIso = null;
+  saveTimerState();
+}
+
+function renderStatsModal() {
+  var summaryEl = document.getElementById("statsSummary");
+  var tableEl = document.getElementById("statsTableContainer");
+
+  if (sessionLog.length === 0) {
+    summaryEl.innerHTML = "";
+    tableEl.innerHTML = "<p style='color: var(--text-secondary); font-size: 14px;'>セッション記録はまだありません。</p>";
+    return;
+  }
+
+  // サマリー計算
+  var totalSessions = sessionLog.length;
+  var totalMs = 0;
+  var totalCount = 0;
+  for (var i = 0; i < sessionLog.length; i++) {
+    totalMs += sessionLog[i].durationMs || 0;
+    totalCount += sessionLog[i].annotationCount || 0;
+  }
+  var totalHours = totalMs / 3600000;
+  var avgRate = totalHours > 0 ? (totalCount / totalHours).toFixed(1) : "-";
+
+  summaryEl.innerHTML =
+    '<div class="stats-summary-card"><div class="stat-value">' + totalSessions + '</div><div class="stat-label">セッション数</div></div>' +
+    '<div class="stats-summary-card"><div class="stat-value">' + formatTimerTime(totalMs) + '</div><div class="stat-label">合計時間</div></div>' +
+    '<div class="stats-summary-card"><div class="stat-value">' + totalCount + '</div><div class="stat-label">合計件数</div></div>' +
+    '<div class="stats-summary-card"><div class="stat-value">' + avgRate + '</div><div class="stat-label">平均 件/時</div></div>';
+
+  // テーブル
+  var html = '<table class="stats-table"><thead><tr><th>日付</th><th>時間帯</th><th>作業時間</th><th>件数</th><th>件/時</th></tr></thead><tbody>';
+  // 新しい順に表示
+  for (var j = sessionLog.length - 1; j >= 0; j--) {
+    var s = sessionLog[j];
+    var startDate = new Date(s.startedAt);
+    var endDate = new Date(s.endedAt);
+    var dateStr = (startDate.getMonth() + 1) + "/" + startDate.getDate();
+    var timeStr = String(startDate.getHours()).padStart(2, "0") + ":" + String(startDate.getMinutes()).padStart(2, "0") +
+      " - " + String(endDate.getHours()).padStart(2, "0") + ":" + String(endDate.getMinutes()).padStart(2, "0");
+    var durStr = formatTimerTime(s.durationMs || 0);
+    var rate = s.ratePerHour != null ? s.ratePerHour : "-";
+
+    html += "<tr><td>" + dateStr + "</td><td>" + timeStr + "</td><td>" + durStr + "</td><td>" + s.annotationCount + "</td><td>" + rate + "</td></tr>";
+  }
+  html += "</tbody></table>";
+  tableEl.innerHTML = html;
+}
+
+function showStatsModal() {
+  renderStatsModal();
+  document.getElementById("statsModal").classList.add("show");
+}
+
+// 統計ボタンイベント
+document.getElementById("statsBtn").onclick = showStatsModal;
+document.getElementById("statsOpenBtn").onclick = openStatsFile;
+document.getElementById("statsCreateBtn").onclick = createStatsFile;
+
+// セッション開始時刻はloadTimerState()で復元済み
 
 function getTableRows() {
   return document.querySelectorAll("#annotationBody tr");
@@ -2612,6 +2895,13 @@ document.getElementById("pasteBtn").onclick = function() {
 document.addEventListener("keydown", function(e) {
   // モーダルが開いている場合はEscで閉じる
   var modal = document.getElementById("shortcutModal");
+  var statsModal = document.getElementById("statsModal");
+  if (statsModal.classList.contains("show")) {
+    if (e.key === "Escape") {
+      statsModal.classList.remove("show");
+    }
+    return;
+  }
   if (modal.classList.contains("show")) {
     if (e.key === "Escape") {
       modal.classList.remove("show");
@@ -2679,7 +2969,7 @@ document.addEventListener("keydown", function(e) {
     // シーク
     case "KeyN": // N: -10秒
       e.preventDefault();
-      seekBy(-10);
+      seekBy(-10, false);
       break;
     case "KeyH": // H: -1秒
       e.preventDefault();
@@ -2699,7 +2989,7 @@ document.addEventListener("keydown", function(e) {
       break;
     case "KeyM": // M: +10秒
       e.preventDefault();
-      seekBy(10);
+      seekBy(10, false);
       break;
 
     // アノテーション
@@ -2717,13 +3007,13 @@ document.addEventListener("keydown", function(e) {
       e.preventDefault();
       openVideoFolder();
       break;
-    case "KeyW": // W: 前の動画
-      e.preventDefault();
-      navigateVideo(-1);
-      break;
-    case "KeyQ": // Q: 次の動画
+    case "KeyW": // W: 次の動画
       e.preventDefault();
       navigateVideo(1);
+      break;
+    case "KeyQ": // Q: 前の動画
+      e.preventDefault();
+      navigateVideo(-1);
       break;
     case "Slash":
       if (e.shiftKey) {
@@ -2779,6 +3069,10 @@ document.addEventListener("keydown", function(e) {
           resetTimer();
         }
       }
+      break;
+    case "KeyU": // U: 統計モーダル
+      e.preventDefault();
+      showStatsModal();
       break;
     case "PageUp": // PageUp: 一覧スクロール上
       var tableUp = document.getElementById("tableContainer");
