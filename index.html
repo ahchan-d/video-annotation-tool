@@ -779,6 +779,101 @@ input[type="range"] {
     overflow-y: auto;
     height: auto;
     min-height: 100vh;
+    padding: 4px;
+  }
+
+  /* モバイル: 縦並びレイアウト (動画 → フォーム → 一覧) */
+  .main-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .top-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .top-left, .top-right {
+    width: 100%;
+  }
+
+  /* 動画セクション */
+  .top-left .section {
+    padding: 6px;
+  }
+  .current-video-name {
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+  video {
+    width: 100%;
+    border-radius: 6px;
+  }
+  #seekBar {
+    height: 12px;
+  }
+  .video-status-bar {
+    font-size: 12px;
+    gap: 8px;
+  }
+
+  /* タイマー */
+  .timer-panel-compact {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+  .timer-compact-display {
+    font-size: 16px !important;
+  }
+
+  /* アノテーション編集フォーム */
+  .top-right > .section {
+    padding: 8px;
+  }
+  .top-right > .section h4 {
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+  #editForm label {
+    font-size: 12px;
+  }
+  #editForm input,
+  #editForm textarea {
+    font-size: 14px;
+    padding: 6px 8px;
+  }
+  #editQuery {
+    min-height: 60px;
+  }
+
+  /* アノテーション一覧 */
+  .bottom-row {
+    width: 100%;
+  }
+  .bottom-row .section {
+    padding: 6px;
+  }
+  .bottom-row .section h4 {
+    font-size: 14px;
+  }
+  #tableContainer {
+    max-height: none;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #annotationTable {
+    font-size: 13px;
+  }
+  #annotationTable th,
+  #annotationTable td {
+    padding: 4px 6px;
+  }
+
+  /* CSVバー */
+  .csv-shortcuts-bar {
+    padding: 6px 8px;
+    font-size: 12px;
+    margin-top: 4px;
   }
 }
 
