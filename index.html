@@ -19,7 +19,7 @@
   --table-header: #e0e0e0;
   --suggestion-hover: #e3f2fd;
   --editing-row: #fff3e0;
-  --selected-row: #e8f5e9;
+  --selected-row: #b9f6ca;
   --video-bg: #333333;
 }
 
@@ -769,6 +769,16 @@ input[type="range"] {
   }
   #volumeBar, #volumeDisplay, #boostIndicator {
     display: none;
+  }
+  html, body {
+    overflow-y: auto;
+    position: static;
+    touch-action: manipulation;
+  }
+  #container {
+    overflow-y: auto;
+    height: auto;
+    min-height: 100vh;
   }
 }
 
